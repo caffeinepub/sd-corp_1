@@ -2,7 +2,6 @@ import { fileURLToPath, URL } from "url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import environment from "vite-plugin-environment";
-import { VitePWA } from "vite-plugin-pwa";
 
 const ii_url =
   process.env.DFX_NETWORK === "local"
@@ -44,39 +43,6 @@ export default defineConfig({
     environment(["II_URL"]),
     environment(["STORAGE_GATEWAY_URL"]),
     react(),
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["assets/generated/*.png"],
-      manifest: false, // We use our own manifest.webmanifest in public/
-      workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.icp0\.io\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "icp-api-cache",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 10,
-            },
-          },
-          {
-            urlPattern: /^https:\/\/blob\.caffeine\.ai\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "blob-cache",
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-            },
-          },
-        ],
-        navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/],
-      },
-      devOptions: {
-        enabled: false,
-      },
-    }),
   ],
   resolve: {
     alias: [

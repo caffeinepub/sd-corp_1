@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { GoogleDriveProvider } from "@/contexts/GoogleDriveContext";
 import {
   Outlet,
   RouterProvider,
@@ -12,6 +13,7 @@ import InstallPrompt from "./components/InstallPrompt";
 import Layout from "./components/Layout";
 import OfflineIndicator from "./components/OfflineIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
+import CloudPage from "./pages/CloudPage";
 import Dashboard from "./pages/Dashboard";
 import LoginPage from "./pages/LoginPage";
 import PinSetupPage from "./pages/PinSetupPage";
@@ -98,9 +100,11 @@ function PublicRoute({
 const rootRoute = createRootRoute({
   component: () => (
     <ThemeProvider>
-      <AuthProvider>
-        <RootComponent />
-      </AuthProvider>
+      <GoogleDriveProvider>
+        <AuthProvider>
+          <RootComponent />
+        </AuthProvider>
+      </GoogleDriveProvider>
     </ThemeProvider>
   ),
 });
@@ -147,6 +151,12 @@ const profileRoute = createRoute({
   component: () => <ProtectedRoute component={ProfilePage} />,
 });
 
+const cloudRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/cloud",
+  component: () => <ProtectedRoute component={CloudPage} />,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -155,6 +165,7 @@ const routeTree = rootRoute.addChildren([
   siteDetailRoute,
   summaryRoute,
   profileRoute,
+  cloudRoute,
 ]);
 
 const router = createRouter({ routeTree });

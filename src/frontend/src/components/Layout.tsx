@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
+  Cloud,
   HardHat,
   LayoutDashboard,
   Menu,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import SyncStatusBadge from "./SyncStatusBadge";
 import { useTheme } from "./ThemeProvider";
 
 const navItems = [
@@ -30,6 +32,7 @@ const navItems = [
     icon: BarChart3,
     ocid: "nav.summary.link",
   },
+  { to: "/cloud", label: "Cloud", icon: Cloud, ocid: "nav.cloud.link" },
 ];
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
@@ -167,6 +170,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex-1" />
+
+          <SyncStatusBadge />
 
           <Button
             variant="ghost"
