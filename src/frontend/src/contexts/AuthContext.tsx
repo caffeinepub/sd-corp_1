@@ -137,9 +137,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: "Failed to retrieve user info" };
         }
         if (result.__kind__ === "userNotFound") {
-          return { success: false, error: "User not found" };
+          return {
+            success: false,
+            error: "User not found. Check your User ID.",
+          };
         }
-        return { success: false, error: "Invalid credentials" };
+        if (result.__kind__ === "invalidCredentials") {
+          return {
+            success: false,
+            error: "Incorrect password. Please try again.",
+          };
+        }
+        return { success: false, error: "Login failed. Please try again." };
       } catch {
         return { success: false, error: "Login failed. Please try again." };
       }

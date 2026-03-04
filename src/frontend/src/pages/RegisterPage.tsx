@@ -98,9 +98,32 @@ export default function RegisterPage() {
           ...prev,
           email: "This email is already registered",
         }));
+      } else {
+        setError("Registration failed. Please try again.");
       }
-    } catch {
-      setError("Registration failed. Please try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.";
+      if (
+        message.toLowerCase().includes("userid") ||
+        message.toLowerCase().includes("user id")
+      ) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          userId: "This User ID is already taken",
+        }));
+      } else if (message.toLowerCase().includes("email")) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          email: "This email is already registered",
+        }));
+      } else {
+        setError(
+          "Registration failed. Please check your details and try again.",
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -282,6 +305,10 @@ export default function RegisterPage() {
                       {fieldErrors.userId}
                     </p>
                   )}
+                  <p className="text-xs text-muted-foreground/70">
+                    Tip: Use a simple username without spaces (e.g.
+                    &quot;twilight&quot; or &quot;john123&quot;)
+                  </p>
                 </div>
 
                 {/* Password */}
