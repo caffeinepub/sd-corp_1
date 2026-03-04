@@ -281,8 +281,8 @@ actor {
 
   // CRUD OPERATIONS FOR SITES, TRANSACTIONS, LABOURS, WORK PROGRESS
   public shared ({ caller }) func createSite(name : Text, clientName : Text, location : Text, startDate : Time.Time, expectedEndDate : Time.Time, totalAmount : Float, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can create sites.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create sites.");
     };
     let site : Site = {
       id = nextSiteId;
@@ -301,8 +301,8 @@ actor {
   };
 
   public shared ({ caller }) func updateSite(id : Nat, name : Text, clientName : Text, location : Text, startDate : Time.Time, expectedEndDate : Time.Time, totalAmount : Float, notes : Text, status : SiteStatus) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can update sites.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update sites");
     };
     switch (sites.get(id)) {
       case (null) { Runtime.trap("Site not found") };
@@ -324,8 +324,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteSite(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can delete sites.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete sites");
     };
     if (not sites.containsKey(id)) { Runtime.trap("Site not found") };
     sites.remove(id);
@@ -349,8 +349,8 @@ actor {
   };
 
   public shared ({ caller }) func createTransaction(siteId : Nat, date : Time.Time, transactionType : TransactionType, amount : Float, paymentMode : Text, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can create transactions.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create transactions");
     };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let transaction : Transaction = {
@@ -368,8 +368,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteTransaction(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can delete transactions.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete transactions");
     };
     if (not transactions.containsKey(id)) { Runtime.trap("Transaction not found") };
     transactions.remove(id);
@@ -393,8 +393,8 @@ actor {
   };
 
   public shared ({ caller }) func createLabour(siteId : Nat, name : Text, phone : Text, workType : Text, dailyWage : Float) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can create labour records.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create labour records");
     };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let labour : Labour = {
@@ -413,8 +413,8 @@ actor {
   };
 
   public shared ({ caller }) func updateLabour(id : Nat, name : Text, phone : Text, workType : Text, dailyWage : Float, totalPaid : Float, pendingPayment : Float) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can update labour records.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update labour records");
     };
     switch (labours.get(id)) {
       case (null) { Runtime.trap("Labour not found") };
@@ -435,8 +435,8 @@ actor {
   };
 
   public shared ({ caller }) func deleteLabour(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can delete labour records.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete labour records");
     };
     if (not labours.containsKey(id)) { Runtime.trap("Labour not found") };
     labours.remove(id);
@@ -460,8 +460,8 @@ actor {
   };
 
   public shared ({ caller }) func createWorkProgress(siteId : Nat, taskName : Text, progressPercent : Nat8, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can create work progress records.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create work progress records");
     };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let workProgress : WorkProgress = {
@@ -477,8 +477,8 @@ actor {
   };
 
   public shared ({ caller }) func updateWorkProgress(id : Nat, taskName : Text, progressPercent : Nat8, notes : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
-      Runtime.trap("Unauthorized: Only admins can update work progress records.");
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update work progress records");
     };
     switch (workProgressItems.get(id)) {
       case (null) { Runtime.trap("Work progress not found") };
