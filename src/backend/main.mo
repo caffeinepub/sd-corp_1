@@ -1,18 +1,32 @@
 import Map "mo:core/Map";
-import List "mo:core/List";
-import Time "mo:core/Time";
-import Iter "mo:core/Iter";
-import Nat8 "mo:core/Nat8";
-import Order "mo:core/Order";
-import Text "mo:core/Text";
-import Int "mo:core/Int";
-import Array "mo:core/Array";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
+import List "mo:core/List";
+import Array "mo:core/Array";
+import Time "mo:core/Time";
+import Text "mo:core/Text";
+import Int "mo:core/Int";
+import Iter "mo:core/Iter";
+import Order "mo:core/Order";
+import Nat8 "mo:core/Nat8";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
+  // Initialize the access control system
+  let accessControlState = AccessControl.initState();
+  include MixinAuthorization(accessControlState);
+
+  // User Profile type for AccessControl integration
+  public type UserProfile = {
+    name : Text;
+    email : Text;
+  };
+
+  let userProfiles = Map.empty<Principal, UserProfile>();
+
   module Site {
     public func compare(site1 : Site, site2 : Site) : Order.Order {
       switch (Text.compare(site1.name, site2.name)) {
@@ -51,13 +65,6 @@ actor {
         case (order) { order };
       };
     };
-  };
-
-  let accessControlState = AccessControl.initState();
-  include MixinAuthorization(accessControlState);
-
-  public type UserProfile = {
-    name : Text;
   };
 
   public type Site = {
@@ -154,7 +161,6 @@ actor {
     #sessionInvalid;
   };
 
-  // STATE
   var nextSiteId = 1;
   var nextTransactionId = 1;
   var nextLabourId = 1;
@@ -165,10 +171,10 @@ actor {
   let transactions = Map.empty<Nat, Transaction>();
   let labours = Map.empty<Nat, Labour>();
   let workProgressItems = Map.empty<Nat, WorkProgress>();
-  let userProfiles = Map.empty<Principal, UserProfile>();
   let users = Map.empty<Text, AppUser>();
   let sessions = Map.empty<Text, Session>();
 
+  // USER PROFILE FUNCTIONS (Required by instructions)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
@@ -190,8 +196,8 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // AUTH FUNCTIONS - Self-service, no AccessControl restrictions
-  public shared func registerUser(userId : Text, name : Text, email : Text, password : Text) : async RegisterUserResult {
+  // AUTH FUNCTIONS - Open to all (including anonymous/guests)
+  public shared ({ caller }) func registerUser(userId : Text, name : Text, email : Text, password : Text) : async RegisterUserResult {
     switch (users.get(userId), users.values().find(func(u) { u.email == email })) {
       case (null, null) {
         let newUser : AppUser = {
@@ -211,7 +217,7 @@ actor {
     };
   };
 
-  public shared func loginUser(userId : Text, password : Text) : async LoginResult {
+  public shared ({ caller }) func loginUser(userId : Text, password : Text) : async LoginResult {
     switch (users.get(userId)) {
       case (null) { #userNotFound };
       case (?user) {
@@ -232,7 +238,7 @@ actor {
     };
   };
 
-  public shared func verifySession(token : Text) : async SessionVerificationResult {
+  public shared ({ caller }) func verifySession(token : Text) : async SessionVerificationResult {
     switch (sessions.get(token)) {
       case (null) { #notFound };
       case (?session) {
@@ -246,20 +252,11 @@ actor {
     };
   };
 
-  public shared func logoutSession(token : Text) : async () {
+  public shared ({ caller }) func logoutSession(token : Text) : async () {
     sessions.remove(token);
   };
 
-  public query ({ caller }) func getUserByUserId(userId : Text) : async ?AppUser {
-    // SECURITY: Only admins can query arbitrary user data
-    // This prevents unauthorized access to password hashes and user information
-    if (not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only admins can query user data");
-    };
-    users.get(userId);
-  };
-
-  public shared func changePassword(token : Text, oldPassword : Text, newPassword : Text) : async ChangePasswordResult {
+  public shared ({ caller }) func changePassword(token : Text, oldPassword : Text, newPassword : Text) : async ChangePasswordResult {
     switch (sessions.get(token)) {
       case (null) { #sessionInvalid };
       case (?session) {
@@ -279,11 +276,8 @@ actor {
     };
   };
 
-  // CRUD OPERATIONS FOR SITES, TRANSACTIONS, LABOURS, WORK PROGRESS
+  // CRUD OPERATIONS FOR SITES - Open to all (including guests)
   public shared ({ caller }) func createSite(name : Text, clientName : Text, location : Text, startDate : Time.Time, expectedEndDate : Time.Time, totalAmount : Float, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create sites.");
-    };
     let site : Site = {
       id = nextSiteId;
       name;
@@ -301,9 +295,6 @@ actor {
   };
 
   public shared ({ caller }) func updateSite(id : Nat, name : Text, clientName : Text, location : Text, startDate : Time.Time, expectedEndDate : Time.Time, totalAmount : Float, notes : Text, status : SiteStatus) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update sites");
-    };
     switch (sites.get(id)) {
       case (null) { Runtime.trap("Site not found") };
       case (?_existing) {
@@ -324,17 +315,11 @@ actor {
   };
 
   public shared ({ caller }) func deleteSite(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete sites");
-    };
     if (not sites.containsKey(id)) { Runtime.trap("Site not found") };
     sites.remove(id);
   };
 
   public query ({ caller }) func getSite(id : Nat) : async Site {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view sites");
-    };
     switch (sites.get(id)) {
       case (null) { Runtime.trap("Site not found") };
       case (?site) { site };
@@ -342,16 +327,11 @@ actor {
   };
 
   public query ({ caller }) func getAllSites() : async [Site] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view sites");
-    };
     sites.values().toArray().sort();
   };
 
+  // CRUD OPERATIONS FOR TRANSACTIONS - Open to all
   public shared ({ caller }) func createTransaction(siteId : Nat, date : Time.Time, transactionType : TransactionType, amount : Float, paymentMode : Text, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create transactions");
-    };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let transaction : Transaction = {
       id = nextTransactionId;
@@ -368,17 +348,11 @@ actor {
   };
 
   public shared ({ caller }) func deleteTransaction(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete transactions");
-    };
     if (not transactions.containsKey(id)) { Runtime.trap("Transaction not found") };
     transactions.remove(id);
   };
 
   public query ({ caller }) func getTransaction(id : Nat) : async Transaction {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view transactions");
-    };
     switch (transactions.get(id)) {
       case (null) { Runtime.trap("Transaction not found") };
       case (?transaction) { transaction };
@@ -386,16 +360,11 @@ actor {
   };
 
   public query ({ caller }) func getTransactionsBySiteId(siteId : Nat) : async [Transaction] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view transactions");
-    };
     transactions.values().toArray().filter(func(t) { t.siteId == siteId }).sort();
   };
 
+  // CRUD OPERATIONS FOR LABOUR - Open to all
   public shared ({ caller }) func createLabour(siteId : Nat, name : Text, phone : Text, workType : Text, dailyWage : Float) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create labour records");
-    };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let labour : Labour = {
       id = nextLabourId;
@@ -413,9 +382,6 @@ actor {
   };
 
   public shared ({ caller }) func updateLabour(id : Nat, name : Text, phone : Text, workType : Text, dailyWage : Float, totalPaid : Float, pendingPayment : Float) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update labour records");
-    };
     switch (labours.get(id)) {
       case (null) { Runtime.trap("Labour not found") };
       case (?existing) {
@@ -435,17 +401,11 @@ actor {
   };
 
   public shared ({ caller }) func deleteLabour(id : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to delete labour records");
-    };
     if (not labours.containsKey(id)) { Runtime.trap("Labour not found") };
     labours.remove(id);
   };
 
   public query ({ caller }) func getLabour(id : Nat) : async Labour {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view labour records");
-    };
     switch (labours.get(id)) {
       case (null) { Runtime.trap("Labour not found") };
       case (?labour) { labour };
@@ -453,16 +413,12 @@ actor {
   };
 
   public query ({ caller }) func getLaboursBySiteId(siteId : Nat) : async [Labour] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view labour records");
-    };
-    labours.values().toArray().filter(func(l) { l.siteId == siteId }).sort();
+    let filtered = labours.values().toArray().filter(func(l) { l.siteId == siteId });
+    filtered.sort();
   };
 
+  // CRUD OPERATIONS FOR WORK PROGRESS - Open to all
   public shared ({ caller }) func createWorkProgress(siteId : Nat, taskName : Text, progressPercent : Nat8, notes : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to create work progress records");
-    };
     if (not sites.containsKey(siteId)) { Runtime.trap("Site not found") };
     let workProgress : WorkProgress = {
       id = nextWorkProgressId;
@@ -477,9 +433,6 @@ actor {
   };
 
   public shared ({ caller }) func updateWorkProgress(id : Nat, taskName : Text, progressPercent : Nat8, notes : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Must be an authenticated user or admin to update work progress records");
-    };
     switch (workProgressItems.get(id)) {
       case (null) { Runtime.trap("Work progress not found") };
       case (?existing) {
@@ -496,9 +449,6 @@ actor {
   };
 
   public query ({ caller }) func getWorkProgress(id : Nat) : async WorkProgress {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view work progress");
-    };
     switch (workProgressItems.get(id)) {
       case (null) { Runtime.trap("Work progress not found") };
       case (?workProgress) { workProgress };
@@ -506,9 +456,6 @@ actor {
   };
 
   public query ({ caller }) func getWorkProgressBySiteId(siteId : Nat) : async [WorkProgress] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view work progress");
-    };
     workProgressItems.values().toArray().filter(func(w) { w.siteId == siteId });
   };
 };

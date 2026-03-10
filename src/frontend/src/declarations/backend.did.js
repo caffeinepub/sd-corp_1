@@ -40,7 +40,10 @@ export const Site = IDL.Record({
   'expectedEndDate' : Time,
   'startDate' : Time,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const UserProfile = IDL.Record({
+  'name' : IDL.Text,
+  'email' : IDL.Text,
+});
 export const Labour = IDL.Record({
   'id' : IDL.Nat,
   'workType' : IDL.Text,
@@ -60,14 +63,6 @@ export const Transaction = IDL.Record({
   'siteId' : IDL.Nat,
   'amount' : IDL.Float64,
 });
-export const AppUser = IDL.Record({
-  'id' : IDL.Nat,
-  'userId' : IDL.Text,
-  'name' : IDL.Text,
-  'createdAt' : Time,
-  'email' : IDL.Text,
-  'passwordHash' : IDL.Text,
-});
 export const WorkProgress = IDL.Record({
   'id' : IDL.Nat,
   'taskName' : IDL.Text,
@@ -84,6 +79,14 @@ export const RegisterUserResult = IDL.Variant({
   'ok' : IDL.Nat,
   'emailTaken' : IDL.Null,
   'userIdTaken' : IDL.Null,
+});
+export const AppUser = IDL.Record({
+  'id' : IDL.Nat,
+  'userId' : IDL.Text,
+  'name' : IDL.Text,
+  'createdAt' : Time,
+  'email' : IDL.Text,
+  'passwordHash' : IDL.Text,
 });
 export const SessionVerificationResult = IDL.Variant({
   'ok' : AppUser,
@@ -134,7 +137,6 @@ export const idlService = IDL.Service({
       [IDL.Vec(Transaction)],
       ['query'],
     ),
-  'getUserByUserId' : IDL.Func([IDL.Text], [IDL.Opt(AppUser)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
@@ -226,7 +228,7 @@ export const idlFactory = ({ IDL }) => {
     'expectedEndDate' : Time,
     'startDate' : Time,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text, 'email' : IDL.Text });
   const Labour = IDL.Record({
     'id' : IDL.Nat,
     'workType' : IDL.Text,
@@ -246,14 +248,6 @@ export const idlFactory = ({ IDL }) => {
     'siteId' : IDL.Nat,
     'amount' : IDL.Float64,
   });
-  const AppUser = IDL.Record({
-    'id' : IDL.Nat,
-    'userId' : IDL.Text,
-    'name' : IDL.Text,
-    'createdAt' : Time,
-    'email' : IDL.Text,
-    'passwordHash' : IDL.Text,
-  });
   const WorkProgress = IDL.Record({
     'id' : IDL.Nat,
     'taskName' : IDL.Text,
@@ -270,6 +264,14 @@ export const idlFactory = ({ IDL }) => {
     'ok' : IDL.Nat,
     'emailTaken' : IDL.Null,
     'userIdTaken' : IDL.Null,
+  });
+  const AppUser = IDL.Record({
+    'id' : IDL.Nat,
+    'userId' : IDL.Text,
+    'name' : IDL.Text,
+    'createdAt' : Time,
+    'email' : IDL.Text,
+    'passwordHash' : IDL.Text,
   });
   const SessionVerificationResult = IDL.Variant({
     'ok' : AppUser,
@@ -320,7 +322,6 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(Transaction)],
         ['query'],
       ),
-    'getUserByUserId' : IDL.Func([IDL.Text], [IDL.Opt(AppUser)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],

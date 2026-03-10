@@ -9,22 +9,6 @@ import {
   useState,
 } from "react";
 
-// The actor returned by createActorWithConfig has _initializeAccessControlWithSecret
-// but it's not declared in backendInterface (typed as the public API only).
-// We use this helper to safely invoke it when available.
-async function initAccessControl(actor: unknown): Promise<void> {
-  try {
-    const a = actor as Record<string, unknown>;
-    if (typeof a._initializeAccessControlWithSecret === "function") {
-      await (
-        a._initializeAccessControlWithSecret as (s: string) => Promise<void>
-      )("");
-    }
-  } catch {
-    // Non-fatal — best effort
-  }
-}
-
 // ── Constants ─────────────────────────────────────────────────
 const SESSION_KEY = "sdcorp_session_token";
 const pinKey = (userId: string) => `sdcorp_pin_${userId}`;
@@ -80,8 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(async (result) => {
         if (result.__kind__ === "ok") {
           const user = result.ok;
-          // Register anonymous principal as #user so CRUD calls are permitted
-          await initAccessControl(actor);
           setCurrentUser(user);
           setSessionToken(savedToken);
 
@@ -113,9 +95,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result.__kind__ === "ok") {
           const token = result.ok;
           localStorage.setItem(SESSION_KEY, token);
-
-          // Register anonymous principal as #user so CRUD calls are permitted
-          await initAccessControl(actor);
 
           // Get user info
           const sessionResult = await actor.verifySession(token);

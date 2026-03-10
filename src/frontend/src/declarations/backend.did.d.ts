@@ -67,7 +67,7 @@ export type TransactionType = { 'miscExpense' : null } |
   { 'labourPayment' : null } |
   { 'paymentReceived' : null } |
   { 'materialPurchase' : null };
-export interface UserProfile { 'name' : string }
+export interface UserProfile { 'name' : string, 'email' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -109,7 +109,6 @@ export interface _SERVICE {
   'getSite' : ActorMethod<[bigint], Site>,
   'getTransaction' : ActorMethod<[bigint], Transaction>,
   'getTransactionsBySiteId' : ActorMethod<[bigint], Array<Transaction>>,
-  'getUserByUserId' : ActorMethod<[string], [] | [AppUser]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getWorkProgress' : ActorMethod<[bigint], WorkProgress>,
   'getWorkProgressBySiteId' : ActorMethod<[bigint], Array<WorkProgress>>,

@@ -85,6 +85,7 @@ export type LoginResult = {
 };
 export interface UserProfile {
     name: string;
+    email: string;
 }
 export enum ChangePasswordResult {
     ok = "ok",
@@ -124,7 +125,6 @@ export interface backendInterface {
     getSite(id: bigint): Promise<Site>;
     getTransaction(id: bigint): Promise<Transaction>;
     getTransactionsBySiteId(siteId: bigint): Promise<Array<Transaction>>;
-    getUserByUserId(userId: string): Promise<AppUser | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getWorkProgress(id: bigint): Promise<WorkProgress>;
     getWorkProgressBySiteId(siteId: bigint): Promise<Array<WorkProgress>>;
